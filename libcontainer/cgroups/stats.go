@@ -1,3 +1,5 @@
+// +build !inno
+
 package cgroups
 
 type ThrottlingData struct {

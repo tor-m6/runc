@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	// "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -157,11 +157,11 @@ func Example() *specs.Spec {
 			},
 		},
 	}
-	if cgroups.IsCgroup2UnifiedMode() {
-		spec.Linux.Namespaces = append(spec.Linux.Namespaces, specs.LinuxNamespace{
-			Type: specs.CgroupNamespace,
-		})
-	}
+	// if cgroups.IsCgroup2UnifiedMode() {
+	// 	spec.Linux.Namespaces = append(spec.Linux.Namespaces, specs.LinuxNamespace{
+	// 		Type: specs.CgroupNamespace,
+	// 	})
+	// }
 	return spec
 }
 

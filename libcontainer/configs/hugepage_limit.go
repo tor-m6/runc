@@ -1,3 +1,6 @@
+//go:build !inno
+// +build !inno
+
 package configs
 
 type HugepageLimit struct {

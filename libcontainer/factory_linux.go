@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime/debug"
 	"strconv"
@@ -27,6 +28,39 @@ const (
 )
 
 var idRegex = regexp.MustCompile(`^[\w+-\.]+$`)
+
+// InitArgs returns an options func to configure a LinuxFactory with the
+// provided init binary path and arguments.
+func InitArgs(args ...string) func(*LinuxFactory) error {
+	return func(l *LinuxFactory) (err error) {
+		if len(args) > 0 {
+			// Resolve relative paths to ensure that its available
+			// after directory changes.
+			if args[0], err = filepath.Abs(args[0]); err != nil {
+				// The only error returned from filepath.Abs is
+				// the one from os.Getwd, i.e. a system error.
+				return err
+			}
+		}
+
+		l.InitArgs = args
+		return nil
+	}
+}
+
+// IntelRdtfs is an options func to configure a LinuxFactory to return
+// containers that use the Intel RDT "resource control" filesystem to
+// create and manage Intel RDT resources (e.g., L3 cache, memory bandwidth).
+func IntelRdtFs(l *LinuxFactory) error {
+	if !intelrdt.IsCATEnabled() && !intelrdt.IsMBAEnabled() {
+		l.NewIntelRdtManager = nil
+	} else {
+		l.NewIntelRdtManager = func(config *configs.Config, id string, path string) intelrdt.Manager {
+			return intelrdt.NewManager(config, id, path)
+		}
+	}
+	return nil
+}
 
 // TmpfsRoot is an option func to mount LinuxFactory.Root to tmpfs.
 func TmpfsRoot(l *LinuxFactory) error {
@@ -51,7 +85,10 @@ func New(root string, options ...func(*LinuxFactory) error) (Factory, error) {
 		}
 	}
 	l := &LinuxFactory{
-		Root: root,
+		Root:      root,
+		InitPath:  "/proc/self/exe",
+		InitArgs:  []string{os.Args[0], "init"},
+		Validator: validate.New(),
 	}
 
 	for _, opt := range options {
@@ -69,6 +106,25 @@ func New(root string, options ...func(*LinuxFactory) error) (Factory, error) {
 type LinuxFactory struct {
 	// Root directory for the factory to store state.
 	Root string
+
+	// InitPath is the path for calling the init responsibilities for spawning
+	// a container.
+	InitPath string
+
+	// InitArgs are arguments for calling the init responsibilities for spawning
+	// a container.
+	InitArgs []string
+
+	// New{u,g}idmapPath is the path to the binaries used for mapping with
+	// rootless containers.
+	NewuidmapPath string
+	NewgidmapPath string
+
+	// Validator provides validation to container configurations.
+	Validator validate.Validator
+
+	// NewIntelRdtManager returns an initialized Intel RDT manager for a single container.
+	NewIntelRdtManager func(config *configs.Config, id string, path string) intelrdt.Manager
 }
 
 func (l *LinuxFactory) Create(id string, config *configs.Config) (Container, error) {
@@ -78,7 +134,7 @@ func (l *LinuxFactory) Create(id string, config *configs.Config) (Container, err
 	if err := l.validateID(id); err != nil {
 		return nil, err
 	}
-	if err := validate.Validate(config); err != nil {
+	if err := l.Validator.Validate(config); err != nil {
 		return nil, err
 	}
 	containerRoot, err := securejoin.SecureJoin(l.Root, id)
@@ -129,11 +185,17 @@ func (l *LinuxFactory) Create(id string, config *configs.Config) (Container, err
 		return nil, err
 	}
 	c := &linuxContainer{
-		id:              id,
-		root:            containerRoot,
-		config:          config,
-		cgroupManager:   cm,
-		intelRdtManager: intelrdt.NewManager(config, id, ""),
+		id:            id,
+		root:          containerRoot,
+		config:        config,
+		initPath:      l.InitPath,
+		initArgs:      l.InitArgs,
+		newuidmapPath: l.NewuidmapPath,
+		newgidmapPath: l.NewgidmapPath,
+		cgroupManager: cm,
+	}
+	if l.NewIntelRdtManager != nil {
+		c.intelRdtManager = l.NewIntelRdtManager(config, id, "")
 	}
 	c.state = &stoppedState{c: c}
 	return c, nil
@@ -169,10 +231,16 @@ func (l *LinuxFactory) Load(id string) (Container, error) {
 		initProcessStartTime: state.InitProcessStartTime,
 		id:                   id,
 		config:               &state.Config,
+		initPath:             l.InitPath,
+		initArgs:             l.InitArgs,
+		newuidmapPath:        l.NewuidmapPath,
+		newgidmapPath:        l.NewgidmapPath,
 		cgroupManager:        cm,
-		intelRdtManager:      intelrdt.NewManager(&state.Config, id, state.IntelRdtPath),
 		root:                 containerRoot,
 		created:              state.Created,
+	}
+	if l.NewIntelRdtManager != nil {
+		c.intelRdtManager = l.NewIntelRdtManager(&state.Config, id, state.IntelRdtPath)
 	}
 	c.state = &loadedState{c: c}
 	if err := c.refreshState(); err != nil {
@@ -295,6 +363,24 @@ func (l *LinuxFactory) validateID(id string) error {
 	}
 
 	return nil
+}
+
+// NewuidmapPath returns an option func to configure a LinuxFactory with the
+// provided ..
+func NewuidmapPath(newuidmapPath string) func(*LinuxFactory) error {
+	return func(l *LinuxFactory) error {
+		l.NewuidmapPath = newuidmapPath
+		return nil
+	}
+}
+
+// NewgidmapPath returns an option func to configure a LinuxFactory with the
+// provided ..
+func NewgidmapPath(newgidmapPath string) func(*LinuxFactory) error {
+	return func(l *LinuxFactory) error {
+		l.NewgidmapPath = newgidmapPath
+		return nil
+	}
 }
 
 func parseMountFds() ([]int, error) {

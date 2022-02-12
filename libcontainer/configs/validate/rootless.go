@@ -8,9 +8,9 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-// rootlessEUIDCheck makes sure that the config can be applied when runc
+// rootlessEUID makes sure that the config can be applied when runc
 // is being executed as a non-root user (euid != 0) in the current user namespace.
-func rootlessEUIDCheck(config *configs.Config) error {
+func (v *ConfigValidator) rootlessEUID(config *configs.Config) error {
 	if !config.RootlessEUID {
 		return nil
 	}

@@ -6,6 +6,10 @@
 
 package unix
 
+import (
+	"fmt"
+	"runtime"
+)
 const (
 	SizeofPtr  = 0x8
 	SizeofLong = 0x8
@@ -1397,7 +1401,17 @@ const (
 	SizeofTCPRepairOpt      = 0x8
 	SizeofNlMsghdr     = 0x10
 	SizeofNlMsgerr     = 0x14
+	SizeofIfInfomsg    = 0x10
 )
+
+type IfInfomsg struct {
+	Family uint8
+	_      uint8
+	Type   uint16
+	Index  int32
+	Flags  uint32
+	Change uint32
+}
 
 type MountAttr struct {
 	Attr_set    uint64
@@ -1413,3 +1427,23 @@ type NlMsghdr struct {
 	Seq   uint32
 	Pid   uint32
 }
+
+const (
+	RT_SCOPE_UNIVERSE  = 0x0
+	RT_SCOPE_SITE      = 0xc8
+	RT_SCOPE_LINK      = 0xfd
+	RT_SCOPE_HOST      = 0xfe
+	RT_SCOPE_NOWHERE   = 0xff
+)
+
+var errNonLinux = fmt.Errorf("unsupported platform %s/%s", runtime.GOOS, runtime.GOARCH)
+
+func Prlimit(pid, resource int, new, old *Rlimit) error {
+	return errNonLinux
+}
+
+// Eventfd is a wrapper
+func Eventfd(initval uint, flags int) (fd int, err error) {
+	return 0, errNonLinux
+}
+

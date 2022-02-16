@@ -1,3 +1,3 @@
-// +build inno
+// +build !inno
 
 package cgroups

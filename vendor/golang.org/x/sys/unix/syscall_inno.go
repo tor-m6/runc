@@ -12,11 +12,11 @@
 package unix
 
 import (
-	"unsafe"
+	"encoding/binary"
 	"sort"
 	"sync"
-	"encoding/binary"
 	"syscall"
+	"unsafe"
 )
 
 const (
@@ -49,7 +49,6 @@ func (iov *Iovec) SetLen(length int) {
 func (cmsg *Cmsghdr) SetLen(length int) {
 	cmsg.Len = uint64(length)
 }
-
 
 // Automatically generated wrapper for utimes/utimes
 //extern utimes
@@ -95,7 +94,6 @@ func Utimes(path string, tv []Timeval) error {
 	}
 	return utimes(path, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
 }
-
 
 func UtimesNano(path string, ts []Timespec) error {
 	if ts == nil {
@@ -826,7 +824,6 @@ func (sa *SockaddrALG) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrALG, nil
 }
 
-
 type SockaddrXDP struct {
 	Flags        uint16
 	Ifindex      uint32
@@ -1013,6 +1010,7 @@ func (w WaitStatus) TrapCause() int {
 
 //sys	Fstatfs(fd int, buf *Statfs_t) (err error)
 //fstatfs64(fd _C_int, buf *Statfs_t) _C_int
+
 func CloseOnExec(fd int) { fcntl(fd, F_SETFD, FD_CLOEXEC) }
 
 // Automatically generated wrapper for socketpair/socketpair
@@ -1065,12 +1063,35 @@ func fcntl(fd int, cmd int, arg int) (val int, err error) {
 }
 
 // taken from libgo sysinfo.go
-type _fsid_t struct { val [1+1]int32; }
-type _statfs struct { f_version uint32; f_type uint32; f_flags uint64; f_bsize uint64; f_iosize uint64; f_blocks uint64; f_bfree uint64; f_bavail int64; f_files uint64; f_ffree int64; f_syncwrites uint64; f_asyncwrites uint64; f_syncreads uint64; f_asyncreads uint64; f_spare [9+1]uint64; f_namemax uint32; f_owner uint32; f_fsid _fsid_t; f_charspare [79+1]int8; f_fstypename [15+1]int8; f_mntfromname [1023+1]int8; f_mntonname [1023+1]int8; }
+type _fsid_t struct{ val [1 + 1]int32 }
+type _statfs struct {
+	f_version     uint32
+	f_type        uint32
+	f_flags       uint64
+	f_bsize       uint64
+	f_iosize      uint64
+	f_blocks      uint64
+	f_bfree       uint64
+	f_bavail      int64
+	f_files       uint64
+	f_ffree       int64
+	f_syncwrites  uint64
+	f_asyncwrites uint64
+	f_syncreads   uint64
+	f_asyncreads  uint64
+	f_spare       [9 + 1]uint64
+	f_namemax     uint32
+	f_owner       uint32
+	f_fsid        _fsid_t
+	f_charspare   [79 + 1]int8
+	f_fstypename  [15 + 1]int8
+	f_mntfromname [1023 + 1]int8
+	f_mntonname   [1023 + 1]int8
+}
 
 // wrapper
 //extern fstatfs
-func c_fstatfs (int32, *Statfs_t) int32
+func c_fstatfs(int32, *Statfs_t) int32
 func Fstatfs(fd int, buf *Statfs_t) (err error) {
 	_r := c_fstatfs(int32(fd), buf)
 	var errno syscall.Errno
@@ -1087,6 +1108,7 @@ func Fstatfs(fd int, buf *Statfs_t) (err error) {
 
 //extern kill
 func c_kill(pid syscall.Pid_t, sig _C_int) _C_int
+
 // Automatically generated wrapper for Kill/kill
 func Kill(pid int, sig syscall.Signal) (err error) {
 	_r := c_kill(syscall.Pid_t(pid), _C_int(sig))
@@ -1204,7 +1226,7 @@ func EpollCtl(epfd int, op int, fd int, event *EpollEvent) (err error) {
 //epoll_wait(epfd _C_int, events *EpollEvent, maxevents _C_int, timeout _C_int) _C_int
 func EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error) {
 	println("EpollWait not implemented!")
-	return 0,nil
+	return 0, nil
 }
 
 //extern write
@@ -1267,6 +1289,54 @@ func Lstat(path string, stat *Stat_t) (err error) {
 	return
 }
 
+// Automatically generated wrapper for Fstat/fstat
+//extern fstat
+func c_fstat(path *byte, stat *Stat_t) _C_int
+func Fstat(path string, stat *Stat_t) (err error) {
+	var _p1 *byte
+	_p1, err = BytePtrFromString(path)
+	if err != nil {
+		return
+	}
+	syscall.Entersyscall()
+	_r := c_fstat(_p1, stat)
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+// Automatically generated wrapper for Stat/stat
+//extern stat
+func c_stat(path *byte, stat *Stat_t) _C_int
+func Stat(path string, stat *Stat_t) (err error) {
+	var _p1 *byte
+	_p1, err = BytePtrFromString(path)
+	if err != nil {
+		return
+	}
+	syscall.Entersyscall()
+	_r := c_stat(_p1, stat)
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
 // Automatically generated wrapper for raw_chroot/chroot
 //extern chroot
 func c_chroot(path *byte) _C_int
@@ -1314,6 +1384,7 @@ func Chdir(path string) (err error) {
 	}
 	return
 }
+
 // Automatically generated wrapper for Unlink/unlink
 //extern unlink
 func c_unlink(path *byte) _C_int
@@ -1367,3 +1438,163 @@ func Mkfifo(path string, mode uint32) (err error) {
 }
 
 type SysProcAttr = syscall.SysProcAttr
+
+// Automatically generated wrapper for Close/dup3
+//extern dup3
+func c_dup3(fd _C_int, newfd _C_int, flags _C_int) _C_int
+func Dup3(oldfd int, newfd int, flags int) (err error) {
+	syscall.Entersyscall()
+	_r := c_dup3(_C_int(oldfd),_C_int(newfd),_C_int(flags))
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+func Send(s int, buf []byte, flags int) (err error) {
+	return sendto(s, buf, flags, nil, 0)
+}
+
+func Sendto(fd int, p []byte, flags int, to Sockaddr) (err error) {
+	ptr, n, err := to.sockaddr()
+	if err != nil {
+		return err
+	}
+	return sendto(fd, p, flags, (*RawSockaddrAny)(ptr), syscall.Socklen_t(n))
+}
+
+// Automatically generated wrapper for recvfrom/recvfrom
+//go:noescape
+//extern recvfrom
+func c_recvfrom(fd _C_int, buf *byte, len syscall.Size_t, flags _C_int, from *RawSockaddrAny, fromlen *syscall.Socklen_t) syscall.Ssize_t
+func recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *syscall.Socklen_t) (n int, err error) {
+	var _p2 *byte
+	if len(p) > 0 {
+		_p2 = (*byte)(unsafe.Pointer(&p[0]))
+	} else {
+		_p2 = (*byte)(unsafe.Pointer(&_zero))
+	}
+	syscall.Entersyscall()
+	_r := c_recvfrom(_C_int(fd), _p2, syscall.Size_t(len(p)), _C_int(flags), from, fromlen)
+	n = (int)(_r)
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+func Recvfrom(fd int, p []byte, flags int) (n int, from Sockaddr, err error) {
+	var rsa RawSockaddrAny
+	var len syscall.Socklen_t = SizeofSockaddrAny
+	if n, err = recvfrom(fd, p, flags, &rsa, &len); err != nil {
+		return
+	}
+	if rsa.Addr.Family != AF_UNSPEC {
+		from, err = anyToSockaddr(fd,&rsa)
+	}
+	return
+}
+
+// Automatically generated wrapper for getsockname/getsockname
+//go:noescape
+//extern getsockname
+func c_getsockname(fd _C_int, sa *RawSockaddrAny, len *syscall.Socklen_t) _C_int
+func getsockname(fd int, sa *RawSockaddrAny, len *syscall.Socklen_t) (err error) {
+	_r := c_getsockname(_C_int(fd), sa, len)
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+func Getsockname(fd int) (sa Sockaddr, err error) {
+	var rsa RawSockaddrAny
+	var len syscall.Socklen_t = (syscall.Socklen_t)(SizeofSockaddrAny)
+	if err = getsockname(fd, &rsa, &len); err != nil {
+		return
+	}
+	return anyToSockaddr(fd, &rsa)
+}
+
+// Automatically generated wrapper for sendto/sendto
+//go:noescape
+//extern sendto
+func c_sendto(s _C_int, buf *byte, len syscall.Size_t, flags _C_int, to *RawSockaddrAny, tolen syscall.Socklen_t) syscall.Ssize_t
+func sendto(s int, buf []byte, flags int, to *RawSockaddrAny, tolen syscall.Socklen_t) (err error) {
+	var _p2 *byte
+	if len(buf) > 0 {
+		_p2 = (*byte)(unsafe.Pointer(&buf[0]))
+	} else {
+		_p2 = (*byte)(unsafe.Pointer(&_zero))
+	}
+	syscall.Entersyscall()
+	_r := c_sendto(_C_int(s), _p2, syscall.Size_t(len(buf)), _C_int(flags), to, syscall.Socklen_t(tolen))
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+// NetlinkMessage represents a netlink message.
+type NetlinkMessage struct {
+	Header NlMsghdr
+	Data   []byte
+}
+
+// ParseNetlinkMessage parses b as an array of netlink messages and
+// returns the slice containing the NetlinkMessage structures.
+func ParseNetlinkMessage(b []byte) ([]NetlinkMessage, error) {
+	var msgs []NetlinkMessage
+	for len(b) >= NLMSG_HDRLEN {
+		h, dbuf, dlen, err := netlinkMessageHeaderAndData(b)
+		if err != nil {
+			return nil, err
+		}
+		m := NetlinkMessage{Header: *h, Data: dbuf[:int(h.Len)-NLMSG_HDRLEN]}
+		msgs = append(msgs, m)
+		b = b[dlen:]
+	}
+	return msgs, nil
+}
+
+func netlinkMessageHeaderAndData(b []byte) (*NlMsghdr, []byte, int, error) {
+	h := (*NlMsghdr)(unsafe.Pointer(&b[0]))
+	l := nlmAlignOf(int(h.Len))
+	if int(h.Len) < NLMSG_HDRLEN || l > len(b) {
+		return nil, nil, 0, EINVAL
+	}
+	return h, b[NLMSG_HDRLEN:], l, nil
+}
+
+// Round the length of a netlink message up to align it properly.
+func nlmAlignOf(msglen int) int {
+	return (msglen + NLMSG_ALIGNTO - 1) & ^(NLMSG_ALIGNTO - 1)
+}
+

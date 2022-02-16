@@ -518,6 +518,7 @@ const (
 	ECHO                                        = 0x8
 	ECRYPTFS_SUPER_MAGIC                        = 0xf15f
 	EFD_SEMAPHORE                               = 0x1
+	EFD_CLOEXEC                      = 0x80000
 	EFIVARFS_MAGIC                              = 0xde5e81e4
 	EFS_SUPER_MAGIC                             = 0x414a53
 	ENCODING_DEFAULT                            = 0x0

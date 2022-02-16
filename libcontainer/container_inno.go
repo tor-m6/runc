@@ -10,12 +10,13 @@ import (
 	// "net"
 	"os"
 	"os/exec"
-	"path"
+	// "path"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	// "github.com/checkpoint-restore/go-criu/v5"
@@ -27,7 +28,7 @@ import (
 	"golang.org/x/sys/unix"
 	// "google.golang.org/protobuf/proto"
 
-	// "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	// "github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/opencontainers/runc/libcontainer/system"
@@ -40,7 +41,7 @@ type linuxContainer struct {
 	id                   string
 	root                 string
 	config               *configs.Config
-	// cgroupManager        cgroups.Manager
+	cgroupManager        cgroups.Manager
 	// intelRdtManager      intelrdt.Manager
 	initPath             string
 	initArgs             []string
@@ -95,10 +96,10 @@ type Container interface {
 	// Methods below here are platform specific
 
 	// Checkpoint checkpoints the running container's state to disk using the criu(8) utility.
-	Checkpoint(criuOpts *CriuOpts) error
+	// Checkpoint(criuOpts *CriuOpts) error
 
 	// Restore restores the checkpointed container to a running state using the criu(8) utility.
-	Restore(process *Process, criuOpts *CriuOpts) error
+	// Restore(process *Process, criuOpts *CriuOpts) error
 
 	// If the Container state is RUNNING or CREATED, sets the Container state to PAUSED and pauses
 	// the execution of any user processes. Asynchronously, when the container finished being paused the
@@ -166,17 +167,17 @@ func (c *linuxContainer) Processes() ([]int, error) {
 
 func (c *linuxContainer) Stats() (*Stats, error) {
 	var (
-		err   error
+		// err   error
 		stats = &Stats{}
 	)
-	if stats.CgroupStats, err = c.cgroupManager.GetStats(); err != nil {
-		return stats, fmt.Errorf("unable to get container cgroup stats: %w", err)
-	}
-	if c.intelRdtManager != nil {
-		if stats.IntelRdtStats, err = c.intelRdtManager.GetStats(); err != nil {
-			return stats, fmt.Errorf("unable to get container Intel RDT stats: %w", err)
-		}
-	}
+	// if stats.CgroupStats, err = c.cgroupManager.GetStats(); err != nil {
+	// 	return stats, fmt.Errorf("unable to get container cgroup stats: %w", err)
+	// }
+	// if c.intelRdtManager != nil {
+	// 	if stats.IntelRdtStats, err = c.intelRdtManager.GetStats(); err != nil {
+	// 		return stats, fmt.Errorf("unable to get container Intel RDT stats: %w", err)
+	// 	}
+	// }
 	for _, iface := range c.config.Networks {
 		switch iface.Type {
 		case "veth":
@@ -200,25 +201,25 @@ func (c *linuxContainer) Set(config configs.Config) error {
 	if status == Stopped {
 		return ErrNotRunning
 	}
-	if err := c.cgroupManager.Set(config.Cgroups.Resources); err != nil {
-		// Set configs back
-		if err2 := c.cgroupManager.Set(c.config.Cgroups.Resources); err2 != nil {
-			logrus.Warnf("Setting back cgroup configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
-		}
-		return err
-	}
-	if c.intelRdtManager != nil {
-		if err := c.intelRdtManager.Set(&config); err != nil {
-			// Set configs back
-			if err2 := c.cgroupManager.Set(c.config.Cgroups.Resources); err2 != nil {
-				logrus.Warnf("Setting back cgroup configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
-			}
-			if err2 := c.intelRdtManager.Set(c.config); err2 != nil {
-				logrus.Warnf("Setting back intelrdt configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
-			}
-			return err
-		}
-	}
+	// if err := c.cgroupManager.Set(config.Cgroups.Resources); err != nil {
+	// 	// Set configs back
+	// 	if err2 := c.cgroupManager.Set(c.config.Cgroups.Resources); err2 != nil {
+	// 		logrus.Warnf("Setting back cgroup configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
+	// 	}
+	// 	return err
+	// }
+	// if c.intelRdtManager != nil {
+	// 	if err := c.intelRdtManager.Set(&config); err != nil {
+	// 		// Set configs back
+	// 		if err2 := c.cgroupManager.Set(c.config.Cgroups.Resources); err2 != nil {
+	// 			logrus.Warnf("Setting back cgroup configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
+	// 		}
+	// 		if err2 := c.intelRdtManager.Set(c.config); err2 != nil {
+	// 			logrus.Warnf("Setting back intelrdt configs failed due to error: %v, your state.json and actual configs might be inconsistent.", err2)
+	// 		}
+	// 		return err
+	// 	}
+	// }
 	// After config setting succeed, update config and states
 	c.config = &config
 	_, err = c.updateState(nil)
@@ -397,9 +398,9 @@ func (c *linuxContainer) Signal(s os.Signal, all bool) error {
 			// For cgroup v1, killing a process in a frozen cgroup
 			// does nothing until it's thawed. Only thaw the cgroup
 			// for SIGKILL.
-			if s, ok := s.(unix.Signal); ok && s == unix.SIGKILL {
-				_ = c.cgroupManager.Freeze(configs.Thawed)
-			}
+			// if s, ok := s.(unix.Signal); ok && s == unix.SIGKILL {
+			// 	_ = c.cgroupManager.Freeze(configs.Thawed)
+			// }
 		}
 		return nil
 	}
@@ -407,14 +408,18 @@ func (c *linuxContainer) Signal(s os.Signal, all bool) error {
 }
 
 func (c *linuxContainer) createExecFifo() error {
-	rootuid, err := c.Config().HostRootUID()
-	if err != nil {
-		return err
-	}
-	rootgid, err := c.Config().HostRootGID()
-	if err != nil {
-		return err
-	}
+	// rootuid, err := c.Config().HostRootUID()
+	// if err != nil {
+	// 	return err
+	// }
+	// rootgid, err := c.Config().HostRootGID()
+	// if err != nil {
+	// 	return err
+	// }
+	var (
+		rootuid=0
+		rootgid=0
+	)
 
 	fifoName := filepath.Join(c.root, execFifoFilename)
 	if _, err := os.Stat(fifoName); err == nil {
@@ -426,7 +431,7 @@ func (c *linuxContainer) createExecFifo() error {
 		return err
 	}
 	unix.Umask(oldMask)
-	return os.Chown(fifoName, rootuid, rootgid)
+	return syscall.Chown(fifoName, rootuid, rootgid)
 }
 
 func (c *linuxContainer) deleteExecFifo() {
@@ -514,9 +519,9 @@ func (c *linuxContainer) commandTemplate(p *Process, childInitPipe *os.File, chi
 	// NOTE: when running a container with no PID namespace and the parent process spawning the container is
 	// PID1 the pdeathsig is being delivered to the container's init process by the kernel for some reason
 	// even with the parent still running.
-	if c.config.ParentDeathSignal > 0 {
-		cmd.SysProcAttr.Pdeathsig = unix.Signal(c.config.ParentDeathSignal)
-	}
+	// if c.config.ParentDeathSignal > 0 {
+	// 	cmd.SysProcAttr.Pdeathsig = unix.Signal(c.config.ParentDeathSignal)
+	// }
 	return cmd
 }
 
@@ -526,10 +531,10 @@ func (c *linuxContainer) commandTemplate(p *Process, childInitPipe *os.File, chi
 func (c *linuxContainer) shouldSendMountSources() bool {
 	// Passing the mount sources via SCM_RIGHTS is only necessary when
 	// both userns and mntns are active.
-	if !c.config.Namespaces.Contains(configs.NEWUSER) ||
-		!c.config.Namespaces.Contains(configs.NEWNS) {
-		return false
-	}
+	// if !c.config.Namespaces.Contains(configs.NEWUSER) ||
+	// 	!c.config.Namespaces.Contains(configs.NEWNS) {
+	// 	return false
+	// }
 
 	// nsexec.c send_mountsources() requires setns(mntns) capabilities
 	// CAP_SYS_CHROOT and CAP_SYS_ADMIN.
@@ -548,18 +553,18 @@ func (c *linuxContainer) shouldSendMountSources() bool {
 }
 
 func (c *linuxContainer) newInitProcess(p *Process, cmd *exec.Cmd, messageSockPair, logFilePair filePair) (*initProcess, error) {
-	cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE="+string(initStandard))
-	nsMaps := make(map[configs.NamespaceType]string)
-	for _, ns := range c.config.Namespaces {
-		if ns.Path != "" {
-			nsMaps[ns.Type] = ns.Path
-		}
-	}
-	_, sharePidns := nsMaps[configs.NEWPID]
-	data, err := c.bootstrapData(c.config.Namespaces.CloneFlags(), nsMaps, initStandard)
-	if err != nil {
-		return nil, err
-	}
+	// cmd.Env = append(cmd.Env, "_LIBCONTAINER_INITTYPE="+string(initStandard))
+	// nsMaps := make(map[configs.NamespaceType]string)
+	// for _, ns := range c.config.Namespaces {
+	// 	if ns.Path != "" {
+	// 		nsMaps[ns.Type] = ns.Path
+	// 	}
+	// }
+	// _, sharePidns := nsMaps[configs.NEWPID]
+	// data, err := c.bootstrapData(c.config.Namespaces.CloneFlags(), nsMaps, initStandard)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	if c.shouldSendMountSources() {
 		// Elements on this slice will be paired with mounts (see StartInitialization() and
@@ -594,13 +599,13 @@ func (c *linuxContainer) newInitProcess(p *Process, cmd *exec.Cmd, messageSockPa
 		cmd:             cmd,
 		messageSockPair: messageSockPair,
 		logFilePair:     logFilePair,
-		manager:         c.cgroupManager,
-		intelRdtManager: c.intelRdtManager,
+		// manager:         c.cgroupManager,
+		// intelRdtManager: c.intelRdtManager,
 		config:          c.newInitConfig(p),
 		container:       c,
 		process:         p,
-		bootstrapData:   data,
-		sharePidns:      sharePidns,
+		// bootstrapData:   data,
+		// sharePidns:      sharePidns,
 	}
 	c.initProcess = init
 	return init, nil
@@ -625,33 +630,33 @@ func (c *linuxContainer) newSetnsProcess(p *Process, cmd *exec.Cmd, messageSockP
 		intelRdtPath:    state.IntelRdtPath,
 		messageSockPair: messageSockPair,
 		logFilePair:     logFilePair,
-		manager:         c.cgroupManager,
+		// manager:         c.cgroupManager,
 		config:          c.newInitConfig(p),
 		process:         p,
 		bootstrapData:   data,
 		initProcessPid:  state.InitProcessPid,
 	}
-	if len(p.SubCgroupPaths) > 0 {
-		if add, ok := p.SubCgroupPaths[""]; ok {
-			// cgroup v1: using the same path for all controllers.
-			// cgroup v2: the only possible way.
-			for k := range proc.cgroupPaths {
-				proc.cgroupPaths[k] = path.Join(proc.cgroupPaths[k], add)
-			}
-			// cgroup v2: do not try to join init process's cgroup
-			// as a fallback (see (*setnsProcess).start).
-			proc.initProcessPid = 0
-		} else {
-			// Per-controller paths.
-			for ctrl, add := range p.SubCgroupPaths {
-				if val, ok := proc.cgroupPaths[ctrl]; ok {
-					proc.cgroupPaths[ctrl] = path.Join(val, add)
-				} else {
-					return nil, fmt.Errorf("unknown controller %s in SubCgroupPaths", ctrl)
-				}
-			}
-		}
-	}
+	// if len(p.SubCgroupPaths) > 0 {
+	// 	if add, ok := p.SubCgroupPaths[""]; ok {
+	// 		// cgroup v1: using the same path for all controllers.
+	// 		// cgroup v2: the only possible way.
+	// 		for k := range proc.cgroupPaths {
+	// 			proc.cgroupPaths[k] = path.Join(proc.cgroupPaths[k], add)
+	// 		}
+	// 		// cgroup v2: do not try to join init process's cgroup
+	// 		// as a fallback (see (*setnsProcess).start).
+	// 		proc.initProcessPid = 0
+	// 	} else {
+	// 		// Per-controller paths.
+	// 		for ctrl, add := range p.SubCgroupPaths {
+	// 			if val, ok := proc.cgroupPaths[ctrl]; ok {
+	// 				proc.cgroupPaths[ctrl] = path.Join(val, add)
+	// 			} else {
+	// 				return nil, fmt.Errorf("unknown controller %s in SubCgroupPaths", ctrl)
+	// 			}
+	// 		}
+	// 	}
+	// }
 	return proc, nil
 }
 
@@ -688,9 +693,9 @@ func (c *linuxContainer) newInitConfig(process *Process) *initConfig {
 	if len(process.Rlimits) > 0 {
 		cfg.Rlimits = process.Rlimits
 	}
-	if cgroups.IsCgroup2UnifiedMode() {
-		cfg.Cgroup2Path = c.cgroupManager.Path("")
-	}
+	// if cgroups.IsCgroup2UnifiedMode() {
+	// 	cfg.Cgroup2Path = c.cgroupManager.Path("")
+	// }
 
 	return cfg
 }
@@ -744,9 +749,9 @@ func (c *linuxContainer) NotifyOOM() (<-chan struct{}, error) {
 		logrus.Warn("getting OOM notifications may fail if you don't have the full access to cgroups")
 	}
 	path := c.cgroupManager.Path("memory")
-	if cgroups.IsCgroup2UnifiedMode() {
-		return notifyOnOOMV2(path)
-	}
+	// if cgroups.IsCgroup2UnifiedMode() {
+	// 	return notifyOnOOMV2(path)
+	// }
 	return notifyOnOOM(path)
 }
 
@@ -1535,6 +1540,7 @@ func (c *linuxContainer) NotifyMemoryPressure(level PressureLevel) (<-chan struc
 // 	}
 
 // 	return err
+// 	return nil
 // }
 
 // func (c *linuxContainer) criuApplyCgroups(pid int, req *criurpc.CriuReq) error {
@@ -2000,10 +2006,10 @@ func (c *linuxContainer) currentState() (*State, error) {
 		externalDescriptors = c.initProcess.externalDescriptors()
 	}
 
-	intelRdtPath := ""
-	if c.intelRdtManager != nil {
-		intelRdtPath = c.intelRdtManager.GetPath()
-	}
+	// intelRdtPath := ""
+	// if c.intelRdtManager != nil {
+	// 	intelRdtPath = c.intelRdtManager.GetPath()
+	// }
 	state := &State{
 		BaseState: BaseState{
 			ID:                   c.ID(),
@@ -2014,24 +2020,24 @@ func (c *linuxContainer) currentState() (*State, error) {
 		},
 		Rootless:            c.config.RootlessEUID && c.config.RootlessCgroups,
 		CgroupPaths:         c.cgroupManager.GetPaths(),
-		IntelRdtPath:        intelRdtPath,
+		// IntelRdtPath:        intelRdtPath,
 		NamespacePaths:      make(map[configs.NamespaceType]string),
 		ExternalDescriptors: externalDescriptors,
 	}
-	if pid > 0 {
-		for _, ns := range c.config.Namespaces {
-			state.NamespacePaths[ns.Type] = ns.GetPath(pid)
-		}
-		for _, nsType := range configs.NamespaceTypes() {
-			if !configs.IsNamespaceSupported(nsType) {
-				continue
-			}
-			if _, ok := state.NamespacePaths[nsType]; !ok {
-				ns := configs.Namespace{Type: nsType}
-				state.NamespacePaths[ns.Type] = ns.GetPath(pid)
-			}
-		}
-	}
+	// if pid > 0 {
+	// 	for _, ns := range c.config.Namespaces {
+	// 		state.NamespacePaths[ns.Type] = ns.GetPath(pid)
+	// 	}
+	// 	for _, nsType := range configs.NamespaceTypes() {
+	// 		if !configs.IsNamespaceSupported(nsType) {
+	// 			continue
+	// 		}
+	// 		if _, ok := state.NamespacePaths[nsType]; !ok {
+	// 			ns := configs.Namespace{Type: nsType}
+	// 			state.NamespacePaths[ns.Type] = ns.GetPath(pid)
+	// 		}
+	// 	}
+	// }
 	return state, nil
 }
 
@@ -2059,34 +2065,35 @@ func (c *linuxContainer) currentOCIState() (*specs.State, error) {
 // orderNamespacePaths sorts namespace paths into a list of paths that we
 // can setns in order.
 func (c *linuxContainer) orderNamespacePaths(namespaces map[configs.NamespaceType]string) ([]string, error) {
-	paths := []string{}
-	for _, ns := range configs.NamespaceTypes() {
+	// paths := []string{}
+	// for _, ns := range configs.NamespaceTypes() {
 
-		// Remove namespaces that we don't need to join.
-		if !c.config.Namespaces.Contains(ns) {
-			continue
-		}
+	// 	// Remove namespaces that we don't need to join.
+	// 	if !c.config.Namespaces.Contains(ns) {
+	// 		continue
+	// 	}
 
-		if p, ok := namespaces[ns]; ok && p != "" {
-			// check if the requested namespace is supported
-			if !configs.IsNamespaceSupported(ns) {
-				return nil, fmt.Errorf("namespace %s is not supported", ns)
-			}
-			// only set to join this namespace if it exists
-			if _, err := os.Lstat(p); err != nil {
-				return nil, fmt.Errorf("namespace path: %w", err)
-			}
-			// do not allow namespace path with comma as we use it to separate
-			// the namespace paths
-			if strings.ContainsRune(p, ',') {
-				return nil, fmt.Errorf("invalid namespace path %s", p)
-			}
-			paths = append(paths, fmt.Sprintf("%s:%s", configs.NsName(ns), p))
-		}
+	// 	if p, ok := namespaces[ns]; ok && p != "" {
+	// 		// check if the requested namespace is supported
+	// 		if !configs.IsNamespaceSupported(ns) {
+	// 			return nil, fmt.Errorf("namespace %s is not supported", ns)
+	// 		}
+	// 		// only set to join this namespace if it exists
+	// 		if _, err := os.Lstat(p); err != nil {
+	// 			return nil, fmt.Errorf("namespace path: %w", err)
+	// 		}
+	// 		// do not allow namespace path with comma as we use it to separate
+	// 		// the namespace paths
+	// 		if strings.ContainsRune(p, ',') {
+	// 			return nil, fmt.Errorf("invalid namespace path %s", p)
+	// 		}
+	// 		paths = append(paths, fmt.Sprintf("%s:%s", configs.NsName(ns), p))
+	// 	}
 
-	}
+	// }
 
-	return paths, nil
+	// return paths, nil
+	return nil, nil
 }
 
 func encodeIDMapping(idMap []configs.IDMap) ([]byte, error) {

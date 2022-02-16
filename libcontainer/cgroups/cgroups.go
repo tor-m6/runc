@@ -1,4 +1,4 @@
-// +build !inno
+// +build inno
 
 package cgroups
 
@@ -58,4 +58,16 @@ type Manager interface {
 
 	// OOMKillCount reports OOM kill count for the cgroup.
 	OOMKillCount() (uint64, error)
+}
+
+type Stats struct {
+	Void	bool
+	// CpuStats    CpuStats    `json:"cpu_stats,omitempty"`
+	// CPUSetStats CPUSetStats `json:"cpuset_stats,omitempty"`
+	// MemoryStats MemoryStats `json:"memory_stats,omitempty"`
+	// PidsStats   PidsStats   `json:"pids_stats,omitempty"`
+	// BlkioStats  BlkioStats  `json:"blkio_stats,omitempty"`
+	// the map is in the format "size of hugepage: stats of the hugepage"
+	// HugetlbStats map[string]HugetlbStats `json:"hugetlb_stats,omitempty"`
+	// RdmaStats    RdmaStats               `json:"rdma_stats,omitempty"`
 }

@@ -14,7 +14,8 @@ func TestValidate(t *testing.T) {
 		Rootfs: "/var",
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err != nil {
 		t.Errorf("Expected error to not occur: %+v", err)
 	}
@@ -31,7 +32,8 @@ func TestValidateWithInvalidRootfs(t *testing.T) {
 		Rootfs: dir,
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -45,7 +47,8 @@ func TestValidateNetworkWithoutNETNamespace(t *testing.T) {
 		Networks:   []*configs.Network{network},
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -59,7 +62,8 @@ func TestValidateNetworkRoutesWithoutNETNamespace(t *testing.T) {
 		Routes:     []*configs.Route{route},
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -76,7 +80,8 @@ func TestValidateHostname(t *testing.T) {
 		),
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err != nil {
 		t.Errorf("Expected error to not occur: %+v", err)
 	}
@@ -88,7 +93,8 @@ func TestValidateHostnameWithoutUTSNamespace(t *testing.T) {
 		Hostname: "runc",
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -105,7 +111,8 @@ func TestValidateSecurityWithMaskPaths(t *testing.T) {
 		),
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err != nil {
 		t.Errorf("Expected error to not occur: %+v", err)
 	}
@@ -122,7 +129,8 @@ func TestValidateSecurityWithROPaths(t *testing.T) {
 		),
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err != nil {
 		t.Errorf("Expected error to not occur: %+v", err)
 	}
@@ -135,7 +143,8 @@ func TestValidateSecurityWithoutNEWNS(t *testing.T) {
 		ReadonlyPaths: []string{"/proc/sys"},
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -154,7 +163,8 @@ func TestValidateUsernamespace(t *testing.T) {
 		),
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err != nil {
 		t.Errorf("expected error to not occur %+v", err)
 	}
@@ -167,7 +177,8 @@ func TestValidateUsernamespaceWithoutUserNS(t *testing.T) {
 		UidMappings: []configs.IDMap{uidMap},
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -215,7 +226,8 @@ func TestValidateSysctl(t *testing.T) {
 			Sysctl: map[string]string{k: v},
 		}
 
-		err := Validate(config)
+		validator := New()
+		err := validator.Validate(config)
 		if err == nil {
 			t.Error("Expected error to occur but it was nil")
 		}
@@ -247,7 +259,8 @@ func TestValidateValidSysctl(t *testing.T) {
 			},
 		}
 
-		err := Validate(config)
+		validator := New()
+		err := validator.Validate(config)
 		if err != nil {
 			t.Errorf("Expected error to not occur with {%s=%s} but got: %q", k, v, err)
 		}
@@ -268,7 +281,8 @@ func TestValidateSysctlWithSameNs(t *testing.T) {
 		),
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -309,7 +323,8 @@ func TestValidateSysctlWithBindHostNetNS(t *testing.T) {
 		),
 	}
 
-	if err := Validate(config); err == nil {
+	validator := New()
+	if err := validator.Validate(config); err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
 }
@@ -321,7 +336,8 @@ func TestValidateSysctlWithoutNETNamespace(t *testing.T) {
 		Namespaces: []configs.Namespace{},
 	}
 
-	err := Validate(config)
+	validator := New()
+	err := validator.Validate(config)
 	if err == nil {
 		t.Error("Expected error to occur but it was nil")
 	}
@@ -342,6 +358,8 @@ func TestValidateMounts(t *testing.T) {
 		{isErr: false, dest: "/abs/but/../unclean"},
 	}
 
+	validator := New()
+
 	for _, tc := range testCases {
 		config := &configs.Config{
 			Rootfs: "/var",
@@ -350,7 +368,7 @@ func TestValidateMounts(t *testing.T) {
 			},
 		}
 
-		err := Validate(config)
+		err := validator.Validate(config)
 		if tc.isErr && err == nil {
 			t.Errorf("mount dest: %s, expected error, got nil", tc.dest)
 		}

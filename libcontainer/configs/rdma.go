@@ -1,3 +1,6 @@
+//go:build !inno
+// +build !inno
+
 package configs
 
 // LinuxRdma for Linux cgroup 'rdma' resource management (Linux 4.11)

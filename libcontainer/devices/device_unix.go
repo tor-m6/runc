@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"io/ioutil"
 
 	"golang.org/x/sys/unix"
 )
@@ -17,7 +18,7 @@ var ErrNotADevice = errors.New("not a device node")
 // Testing dependencies
 var (
 	unixLstat = unix.Lstat
-	osReadDir = os.ReadDir
+	osReadDir = ioutil.ReadDir
 )
 
 func mkDev(d *Rule) (uint64, error) {

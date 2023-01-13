@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
+	// "github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/intelrdt"
+	// "github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/opencontainers/runc/libcontainer/logs"
 	"github.com/opencontainers/runc/libcontainer/system"
 	"github.com/opencontainers/runc/libcontainer/utils"
@@ -60,7 +60,7 @@ type setnsProcess struct {
 	logFilePair     filePair
 	cgroupPaths     map[string]string
 	rootlessCgroups bool
-	manager         cgroups.Manager
+	// manager         cgroups.Manager
 	intelRdtPath    string
 	config          *initConfig
 	fds             []string
@@ -85,7 +85,7 @@ func (p *setnsProcess) signal(sig os.Signal) error {
 func (p *setnsProcess) start() (retErr error) {
 	defer p.messageSockPair.parent.Close()
 	// get the "before" value of oom kill count
-	oom, _ := p.manager.OOMKillCount()
+	// oom, _ := p.manager.OOMKillCount()
 	err := p.cmd.Start()
 	// close the write-side of the pipes (controlled by child)
 	p.messageSockPair.child.Close()
@@ -95,22 +95,22 @@ func (p *setnsProcess) start() (retErr error) {
 	}
 
 	waitInit := initWaiter(p.messageSockPair.parent)
-	defer func() {
-		if retErr != nil {
-			if newOom, err := p.manager.OOMKillCount(); err == nil && newOom != oom {
-				// Someone in this cgroup was killed, this _might_ be us.
-				retErr = fmt.Errorf("%w (possibly OOM-killed)", retErr)
-			}
-			werr := <-waitInit
-			if werr != nil {
-				logrus.WithError(werr).Warn()
-			}
-			err := ignoreTerminateErrors(p.terminate())
-			if err != nil {
-				logrus.WithError(err).Warn("unable to terminate setnsProcess")
-			}
-		}
-	}()
+	// defer func() {
+	// 	if retErr != nil {
+	// 		if newOom, err := p.manager.OOMKillCount(); err == nil && newOom != oom {
+	// 			// Someone in this cgroup was killed, this _might_ be us.
+	// 			retErr = fmt.Errorf("%w (possibly OOM-killed)", retErr)
+	// 		}
+	// 		werr := <-waitInit
+	// 		if werr != nil {
+	// 			logrus.WithError(werr).Warn()
+	// 		}
+	// 		err := ignoreTerminateErrors(p.terminate())
+	// 		if err != nil {
+	// 			logrus.WithError(err).Warn("unable to terminate setnsProcess")
+	// 		}
+	// 	}
+	// }()
 
 	if p.bootstrapData != nil {
 		if _, err := io.Copy(p.messageSockPair.parent, p.bootstrapData); err != nil {
@@ -124,38 +124,38 @@ func (p *setnsProcess) start() (retErr error) {
 	if err := p.execSetns(); err != nil {
 		return fmt.Errorf("error executing setns process: %w", err)
 	}
-	for _, path := range p.cgroupPaths {
-		if err := cgroups.WriteCgroupProc(path, p.pid()); err != nil && !p.rootlessCgroups {
-			// On cgroup v2 + nesting + domain controllers, WriteCgroupProc may fail with EBUSY.
-			// https://github.com/opencontainers/runc/issues/2356#issuecomment-621277643
-			// Try to join the cgroup of InitProcessPid.
-			if cgroups.IsCgroup2UnifiedMode() && p.initProcessPid != 0 {
-				initProcCgroupFile := fmt.Sprintf("/proc/%d/cgroup", p.initProcessPid)
-				initCg, initCgErr := cgroups.ParseCgroupFile(initProcCgroupFile)
-				if initCgErr == nil {
-					if initCgPath, ok := initCg[""]; ok {
-						initCgDirpath := filepath.Join(fs2.UnifiedMountpoint, initCgPath)
-						logrus.Debugf("adding pid %d to cgroups %v failed (%v), attempting to join %q (obtained from %s)",
-							p.pid(), p.cgroupPaths, err, initCg, initCgDirpath)
-						// NOTE: initCgDirPath is not guaranteed to exist because we didn't pause the container.
-						err = cgroups.WriteCgroupProc(initCgDirpath, p.pid())
-					}
-				}
-			}
-			if err != nil {
-				return fmt.Errorf("error adding pid %d to cgroups: %w", p.pid(), err)
-			}
-		}
-	}
-	if p.intelRdtPath != "" {
-		// if Intel RDT "resource control" filesystem path exists
-		_, err := os.Stat(p.intelRdtPath)
-		if err == nil {
-			if err := intelrdt.WriteIntelRdtTasks(p.intelRdtPath, p.pid()); err != nil {
-				return fmt.Errorf("error adding pid %d to Intel RDT: %w", p.pid(), err)
-			}
-		}
-	}
+	// for _, path := range p.cgroupPaths {
+	// 	if err := cgroups.WriteCgroupProc(path, p.pid()); err != nil && !p.rootlessCgroups {
+	// 		// On cgroup v2 + nesting + domain controllers, WriteCgroupProc may fail with EBUSY.
+	// 		// https://github.com/opencontainers/runc/issues/2356#issuecomment-621277643
+	// 		// Try to join the cgroup of InitProcessPid.
+	// 		if cgroups.IsCgroup2UnifiedMode() && p.initProcessPid != 0 {
+	// 			initProcCgroupFile := fmt.Sprintf("/proc/%d/cgroup", p.initProcessPid)
+	// 			initCg, initCgErr := cgroups.ParseCgroupFile(initProcCgroupFile)
+	// 			if initCgErr == nil {
+	// 				if initCgPath, ok := initCg[""]; ok {
+	// 					initCgDirpath := filepath.Join(fs2.UnifiedMountpoint, initCgPath)
+	// 					logrus.Debugf("adding pid %d to cgroups %v failed (%v), attempting to join %q (obtained from %s)",
+	// 						p.pid(), p.cgroupPaths, err, initCg, initCgDirpath)
+	// 					// NOTE: initCgDirPath is not guaranteed to exist because we didn't pause the container.
+	// 					err = cgroups.WriteCgroupProc(initCgDirpath, p.pid())
+	// 				}
+	// 			}
+	// 		}
+	// 		if err != nil {
+	// 			return fmt.Errorf("error adding pid %d to cgroups: %w", p.pid(), err)
+	// 		}
+	// 	}
+	// }
+	// if p.intelRdtPath != "" {
+	// 	// if Intel RDT "resource control" filesystem path exists
+	// 	_, err := os.Stat(p.intelRdtPath)
+	// 	if err == nil {
+	// 		if err := intelrdt.WriteIntelRdtTasks(p.intelRdtPath, p.pid()); err != nil {
+	// 			return fmt.Errorf("error adding pid %d to Intel RDT: %w", p.pid(), err)
+	// 		}
+	// 	}
+	// }
 	// set rlimits, this has to be done here because we lose permissions
 	// to raise the limits once we enter a user-namespace
 	if err := setupRlimits(p.config.Rlimits, p.pid()); err != nil {
@@ -302,8 +302,8 @@ type initProcess struct {
 	messageSockPair filePair
 	logFilePair     filePair
 	config          *initConfig
-	manager         cgroups.Manager
-	intelRdtManager intelrdt.Manager
+	// manager         cgroups.Manager
+	// intelRdtManager intelrdt.Manager
 	container       *linuxContainer
 	fds             []string
 	process         *Process
@@ -370,56 +370,56 @@ func (p *initProcess) start() (retErr error) {
 	}
 
 	waitInit := initWaiter(p.messageSockPair.parent)
-	defer func() {
-		if retErr != nil {
-			// Find out if init is killed by the kernel's OOM killer.
-			// Get the count before killing init as otherwise cgroup
-			// might be removed by systemd.
-			oom, err := p.manager.OOMKillCount()
-			if err != nil {
-				logrus.WithError(err).Warn("unable to get oom kill count")
-			} else if oom > 0 {
-				// Does not matter what the particular error was,
-				// its cause is most probably OOM, so report that.
-				const oomError = "container init was OOM-killed (memory limit too low?)"
+	// defer func() {
+	// 	if retErr != nil {
+	// 		// Find out if init is killed by the kernel's OOM killer.
+	// 		// Get the count before killing init as otherwise cgroup
+	// 		// might be removed by systemd.
+	// 		oom, err := p.manager.OOMKillCount()
+	// 		if err != nil {
+	// 			logrus.WithError(err).Warn("unable to get oom kill count")
+	// 		} else if oom > 0 {
+	// 			// Does not matter what the particular error was,
+	// 			// its cause is most probably OOM, so report that.
+	// 			const oomError = "container init was OOM-killed (memory limit too low?)"
 
-				if logrus.GetLevel() >= logrus.DebugLevel {
-					// Only show the original error if debug is set,
-					// as it is not generally very useful.
-					retErr = fmt.Errorf(oomError+": %w", retErr)
-				} else {
-					retErr = errors.New(oomError)
-				}
-			}
+	// 			if logrus.GetLevel() >= logrus.DebugLevel {
+	// 				// Only show the original error if debug is set,
+	// 				// as it is not generally very useful.
+	// 				retErr = fmt.Errorf(oomError+": %w", retErr)
+	// 			} else {
+	// 				retErr = errors.New(oomError)
+	// 			}
+	// 		}
 
-			werr := <-waitInit
-			if werr != nil {
-				logrus.WithError(werr).Warn()
-			}
+	// 		werr := <-waitInit
+	// 		if werr != nil {
+	// 			logrus.WithError(werr).Warn()
+	// 		}
 
-			// Terminate the process to ensure we can remove cgroups.
-			if err := ignoreTerminateErrors(p.terminate()); err != nil {
-				logrus.WithError(err).Warn("unable to terminate initProcess")
-			}
+	// 		// Terminate the process to ensure we can remove cgroups.
+	// 		if err := ignoreTerminateErrors(p.terminate()); err != nil {
+	// 			logrus.WithError(err).Warn("unable to terminate initProcess")
+	// 		}
 
-			_ = p.manager.Destroy()
-			if p.intelRdtManager != nil {
-				_ = p.intelRdtManager.Destroy()
-			}
-		}
-	}()
+	// 		_ = p.manager.Destroy()
+	// 		if p.intelRdtManager != nil {
+	// 			_ = p.intelRdtManager.Destroy()
+	// 		}
+	// 	}
+	// }()
 
 	// Do this before syncing with child so that no children can escape the
 	// cgroup. We don't need to worry about not doing this and not being root
 	// because we'd be using the rootless cgroup manager in that case.
-	if err := p.manager.Apply(p.pid()); err != nil {
-		return fmt.Errorf("unable to apply cgroup configuration: %w", err)
-	}
-	if p.intelRdtManager != nil {
-		if err := p.intelRdtManager.Apply(p.pid()); err != nil {
-			return fmt.Errorf("unable to apply Intel RDT configuration: %w", err)
-		}
-	}
+	// if err := p.manager.Apply(p.pid()); err != nil {
+	// 	return fmt.Errorf("unable to apply cgroup configuration: %w", err)
+	// }
+	// if p.intelRdtManager != nil {
+	// 	if err := p.intelRdtManager.Apply(p.pid()); err != nil {
+	// 		return fmt.Errorf("unable to apply Intel RDT configuration: %w", err)
+	// 	}
+	// }
 	if _, err := io.Copy(p.messageSockPair.parent, p.bootstrapData); err != nil {
 		return fmt.Errorf("can't copy bootstrap data to pipe: %w", err)
 	}
@@ -507,14 +507,14 @@ func (p *initProcess) start() (retErr error) {
 			// call prestart and CreateRuntime hooks
 			if !p.config.Config.Namespaces.Contains(configs.NEWNS) {
 				// Setup cgroup before the hook, so that the prestart and CreateRuntime hook could apply cgroup permissions.
-				if err := p.manager.Set(p.config.Config.Cgroups.Resources); err != nil {
-					return fmt.Errorf("error setting cgroup config for ready process: %w", err)
-				}
-				if p.intelRdtManager != nil {
-					if err := p.intelRdtManager.Set(p.config.Config); err != nil {
-						return fmt.Errorf("error setting Intel RDT config for ready process: %w", err)
-					}
-				}
+				// if err := p.manager.Set(p.config.Config.Cgroups.Resources); err != nil {
+				// 	return fmt.Errorf("error setting cgroup config for ready process: %w", err)
+				// }
+				// if p.intelRdtManager != nil {
+				// 	if err := p.intelRdtManager.Set(p.config.Config); err != nil {
+				// 		return fmt.Errorf("error setting Intel RDT config for ready process: %w", err)
+				// 	}
+				// }
 
 				if len(p.config.Config.Hooks) != 0 {
 					s, err := p.container.currentOCIState()
@@ -563,14 +563,14 @@ func (p *initProcess) start() (retErr error) {
 			sentRun = true
 		case procHooks:
 			// Setup cgroup before prestart hook, so that the prestart hook could apply cgroup permissions.
-			if err := p.manager.Set(p.config.Config.Cgroups.Resources); err != nil {
-				return fmt.Errorf("error setting cgroup config for procHooks process: %w", err)
-			}
-			if p.intelRdtManager != nil {
-				if err := p.intelRdtManager.Set(p.config.Config); err != nil {
-					return fmt.Errorf("error setting Intel RDT config for procHooks process: %w", err)
-				}
-			}
+			// if err := p.manager.Set(p.config.Config.Cgroups.Resources); err != nil {
+			// 	return fmt.Errorf("error setting cgroup config for procHooks process: %w", err)
+			// }
+			// if p.intelRdtManager != nil {
+			// 	if err := p.intelRdtManager.Set(p.config.Config); err != nil {
+			// 		return fmt.Errorf("error setting Intel RDT config for procHooks process: %w", err)
+			// 	}
+			// }
 			if len(p.config.Config.Hooks) != 0 {
 				s, err := p.container.currentOCIState()
 				if err != nil {
@@ -621,9 +621,9 @@ func (p *initProcess) start() (retErr error) {
 func (p *initProcess) wait() (*os.ProcessState, error) {
 	err := p.cmd.Wait()
 	// we should kill all processes in cgroup when init is died if we use host PID namespace
-	if p.sharePidns {
-		_ = signalAllProcesses(p.manager, unix.SIGKILL)
-	}
+	// if p.sharePidns {
+	// 	_ = signalAllProcesses(p.manager, unix.SIGKILL)
+	// }
 	return p.cmd.ProcessState, err
 }
 

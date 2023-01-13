@@ -540,7 +540,8 @@ func TestSpecconvExampleValidate(t *testing.T) {
 			spec.Process.NoNewPrivileges, config.NoNewPrivileges)
 	}
 
-	if err := validate.Validate(config); err != nil {
+	validator := validate.New()
+	if err := validator.Validate(config); err != nil {
 		t.Errorf("Expected specconv to produce valid container config: %v", err)
 	}
 }
@@ -561,7 +562,8 @@ func TestSpecconvNoLinuxSection(t *testing.T) {
 		t.Errorf("Couldn't create libcontainer config: %v", err)
 	}
 
-	if err := validate.Validate(config); err != nil {
+	validator := validate.New()
+	if err := validator.Validate(config); err != nil {
 		t.Errorf("Expected specconv to produce valid container config: %v", err)
 	}
 }
@@ -615,7 +617,8 @@ func TestNonZeroEUIDCompatibleSpecconvValidate(t *testing.T) {
 		t.Errorf("Couldn't create libcontainer config: %v", err)
 	}
 
-	if err := validate.Validate(config); err != nil {
+	validator := validate.New()
+	if err := validator.Validate(config); err != nil {
 		t.Errorf("Expected specconv to produce valid rootless container config: %v", err)
 	}
 }

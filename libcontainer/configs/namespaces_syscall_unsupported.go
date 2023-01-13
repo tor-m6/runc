@@ -3,6 +3,16 @@
 
 package configs
 
+const (
+	NEWNET    NamespaceType = "NEWNET"
+	NEWPID    NamespaceType = "NEWPID"
+	NEWNS     NamespaceType = "NEWNS"
+	NEWUTS    NamespaceType = "NEWUTS"
+	NEWIPC    NamespaceType = "NEWIPC"
+	NEWUSER   NamespaceType = "NEWUSER"
+	NEWCGROUP NamespaceType = "NEWCGROUP"
+)
+
 func (n *Namespace) Syscall() int {
 	panic("No namespace syscall support")
 }

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
-// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris zos
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos || inno
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris zos inno
 
 // Socket control messages
 
@@ -90,4 +90,10 @@ func ParseUnixRights(m *SocketControlMessage) ([]int, error) {
 		j++
 	}
 	return fds, nil
+}
+
+func cmsgAlignOf(salen int) int {
+	salign := SizeofPtr
+
+	return (salen + salign - 1) & ^(salign - 1)
 }

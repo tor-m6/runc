@@ -66,5 +66,5 @@ func parseSignal(rawSignal string) (unix.Signal, error) {
 	if signal == 0 {
 		return -1, fmt.Errorf("unknown signal %q", rawSignal)
 	}
-	return signal, nil
+	return (unix.Signal)(signal), nil
 }

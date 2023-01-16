@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"io/ioutil"
 	"path/filepath"
 	"syscall"
 	"text/tabwriter"
@@ -120,7 +121,7 @@ func getContainers(context *cli.Context) ([]containerState, error) {
 	if err != nil {
 		return nil, err
 	}
-	list, err := os.ReadDir(absRoot)
+	list, err := ioutil.ReadDir(absRoot)
 	if err != nil {
 		fatal(err)
 	}
@@ -130,20 +131,21 @@ func getContainers(context *cli.Context) ([]containerState, error) {
 		if !item.IsDir() {
 			continue
 		}
-		st, err := item.Info()
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				// Possible race with runc delete.
-				continue
-			}
-			fatal(err)
-		}
+		// st, err := item.Info()
+		// if err != nil {
+		// 	if errors.Is(err, os.ErrNotExist) {
+		// 		// Possible race with runc delete.
+		// 		continue
+		// 	}
+		// 	fatal(err)
+		// }
 		// This cast is safe on Linux.
-		uid := st.Sys().(*syscall.Stat_t).Uid
-		owner, err := user.LookupUid(int(uid))
-		if err != nil {
+		uid := item.Sys().(*syscall.Stat_t).Uid
+		// owner, err := user.LookupUid(int(uid))
+		// if err != nil {
+			var owner user.User
 			owner.Name = fmt.Sprintf("#%d", uid)
-		}
+		// }
 
 		container, err := factory.Load(item.Name())
 		if err != nil {

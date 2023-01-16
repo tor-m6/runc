@@ -38,9 +38,9 @@ func hasIDMapping(id int, mappings []configs.IDMap) bool {
 }
 
 func rootlessEUIDMappings(config *configs.Config) error {
-	if !config.Namespaces.Contains(configs.NEWUSER) {
-		return errors.New("rootless container requires user namespaces")
-	}
+	// if !config.Namespaces.Contains(configs.NEWUSER) {
+	// 	return errors.New("rootless container requires user namespaces")
+	// }
 
 	if len(config.UidMappings) == 0 {
 		return errors.New("rootless containers requires at least one UID mapping")

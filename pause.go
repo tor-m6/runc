@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
+	// "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -19,13 +19,13 @@ Use runc list to identify instances of containers and their current status.`,
 		if err := checkArgs(context, 1, exactArgs); err != nil {
 			return err
 		}
-		rootlessCg, err := shouldUseRootlessCgroupManager(context)
-		if err != nil {
-			return err
-		}
-		if rootlessCg {
-			logrus.Warnf("runc pause may fail if you don't have the full access to cgroups")
-		}
+		// rootlessCg, err := shouldUseRootlessCgroupManager(context)
+		// if err != nil {
+		// 	return err
+		// }
+		// if rootlessCg {
+		// 	logrus.Warnf("runc pause may fail if you don't have the full access to cgroups")
+		// }
 		container, err := getContainer(context)
 		if err != nil {
 			return err
@@ -48,13 +48,13 @@ Use runc list to identify instances of containers and their current status.`,
 		if err := checkArgs(context, 1, exactArgs); err != nil {
 			return err
 		}
-		rootlessCg, err := shouldUseRootlessCgroupManager(context)
-		if err != nil {
-			return err
-		}
-		if rootlessCg {
-			logrus.Warn("runc resume may fail if you don't have the full access to cgroups")
-		}
+		// rootlessCg, err := shouldUseRootlessCgroupManager(context)
+		// if err != nil {
+		// 	return err
+		// }
+		// if rootlessCg {
+		// 	logrus.Warn("runc resume may fail if you don't have the full access to cgroups")
+		// }
 		container, err := getContainer(context)
 		if err != nil {
 			return err

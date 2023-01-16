@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"io/ioutil"
 
-	"github.com/opencontainers/runc/libcontainer/configs"
+	// "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
@@ -108,7 +109,7 @@ created by an unprivileged user.
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(specConfig, data, 0o666)
+		return ioutil.WriteFile(specConfig, data, 0o666)
 	},
 }
 
@@ -129,14 +130,14 @@ func loadSpec(cPath string) (spec *specs.Spec, err error) {
 	return spec, validateProcessSpec(spec.Process)
 }
 
-func createLibContainerRlimit(rlimit specs.POSIXRlimit) (configs.Rlimit, error) {
-	rl, err := strToRlimit(rlimit.Type)
-	if err != nil {
-		return configs.Rlimit{}, err
-	}
-	return configs.Rlimit{
-		Type: rl,
-		Hard: rlimit.Hard,
-		Soft: rlimit.Soft,
-	}, nil
-}
+// func createLibContainerRlimit(rlimit specs.POSIXRlimit) (configs.Rlimit, error) {
+// 	rl, err := strToRlimit(rlimit.Type)
+// 	if err != nil {
+// 		return configs.Rlimit{}, err
+// 	}
+// 	return configs.Rlimit{
+// 		Type: rl,
+// 		Hard: rlimit.Hard,
+// 		Soft: rlimit.Soft,
+// 	}, nil
+// }

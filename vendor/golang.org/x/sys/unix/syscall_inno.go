@@ -28,6 +28,10 @@ var (
 	signalNameMap     map[string]syscall.Signal
 )
 
+type Signal = syscall.Signal
+type Errno = syscall.Errno
+type SysProcAttr = syscall.SysProcAttr
+
 //sys	utimensat(dirfd int, path string, times *[2]Timespec, flags int) (err error)
 func utimensat(dirfd int, path string, times *[2]Timespec, flags int) error {
 	// Darwin doesn't support SYS_UTIMENSAT
@@ -1088,7 +1092,7 @@ func Fstatfs(fd int, buf *Statfs_t) (err error) {
 //extern kill
 func c_kill(pid syscall.Pid_t, sig _C_int) _C_int
 // Automatically generated wrapper for Kill/kill
-func Kill(pid int, sig syscall.Signal) (err error) {
+func Kill(pid int, sig Signal) (err error) {
 	_r := c_kill(syscall.Pid_t(pid), _C_int(sig))
 	var errno syscall.Errno
 	setErrno := false
@@ -1360,10 +1364,40 @@ func ioctl(fd int, req uint, arg uintptr) (err error) {
 
 // A Signal is a number describing a process signal.
 // It implements the os.Signal interface.
-type Signal int
+// type Signal int
 
 func Mkfifo(path string, mode uint32) (err error) {
 	return syscall.Mkfifo(path, mode)
 }
 
-type SysProcAttr = syscall.SysProcAttr
+// type SysProcAttr = syscall.SysProcAttr
+
+
+// Automatically generated wrapper for Fchown/fchown
+//go:noescape
+//extern fchown
+func c_fchown(fd _C_int, uid Uid_t, gid Gid_t) _C_int
+func Fchown(fd int, uid int, gid int) (err error) {
+	syscall.Entersyscall()
+	_r := c_fchown(_C_int(fd), Uid_t(uid), Gid_t(gid))
+	var errno syscall.Errno
+	setErrno := false
+	if _r < 0 {
+		errno = syscall.GetErrno()
+		setErrno = true
+	}
+	syscall.Exitsyscall()
+	if setErrno {
+		err = errno
+	}
+	return
+}
+
+func Prctl(option int, arg2 uintptr, arg3 uintptr, arg4 uintptr, arg5 uintptr) (err error) {
+	// _, _, e1 := Syscall6(SYS_PRCTL, uintptr(option), uintptr(arg2), uintptr(arg3), uintptr(arg4), uintptr(arg5), 0)
+	// if e1 != 0 {
+	// 	err = errnoErr(e1)
+	// }
+	println("Prctl not implemented!")
+	return
+}

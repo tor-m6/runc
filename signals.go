@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"syscall"
 	"os/signal"
 
 	"github.com/opencontainers/runc/libcontainer"
@@ -104,7 +105,7 @@ func (h *signalHandler) forward(process *libcontainer.Process, tty *tty, detach 
 			// and it should not be forwarded to the container.
 			// Do nothing.
 		default:
-			us := s.(unix.Signal)
+			us := s.(syscall.Signal)
 			logrus.Debugf("forwarding signal %d (%s) to %d", int(us), unix.SignalName(us), pid1)
 			if err := unix.Kill(pid1, us); err != nil {
 				logrus.Error(err)
@@ -118,11 +119,11 @@ func (h *signalHandler) forward(process *libcontainer.Process, tty *tty, detach 
 // then returns all exits to the main event loop for further processing.
 func (h *signalHandler) reap() (exits []exit, err error) {
 	var (
-		ws  unix.WaitStatus
-		rus unix.Rusage
+		ws  syscall.WaitStatus
+		rus syscall.Rusage
 	)
 	for {
-		pid, err := unix.Wait4(-1, &ws, unix.WNOHANG, &rus)
+		pid, err := syscall.Wait4(-1, &ws, unix.WNOHANG, &rus)
 		if err != nil {
 			if err == unix.ECHILD { //nolint:errorlint // unix errors are bare
 				return exits, nil
@@ -134,7 +135,7 @@ func (h *signalHandler) reap() (exits []exit, err error) {
 		}
 		exits = append(exits, exit{
 			pid:    pid,
-			status: utils.ExitStatus(ws),
+			status: utils.ExitStatus(unix.WaitStatus(ws)),
 		})
 	}
 }

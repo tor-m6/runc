@@ -51,7 +51,8 @@ func (e *PtyError) Unwrap() error { return e.Errno }
 
 // Open returns a master pty and the name of the linked slave tty.
 func Open() (master *os.File, slave string, err error) {
-	m := posix_openpt(_O_RDWR)
+	// m := posix_openpt(_O_RDWR)
+	var m int32 = -1
 	if m < 0 {
 		return nil, "", ptyError("posix_openpt", syscall.GetErrno())
 	}

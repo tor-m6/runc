@@ -2,16 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+	// "errors"
 	"fmt"
 	"os"
 	"strconv"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	// "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 
 	"github.com/docker/go-units"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	// "github.com/opencontainers/runc/libcontainer/configs"
 	// "github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
@@ -256,7 +256,7 @@ other options are ignored.
 		}
 
 		// Update the values
-		config.Cgroups.Resources.BlkioWeight = *r.BlockIO.Weight
+		// config.Cgroups.Resources.BlkioWeight = *r.BlockIO.Weight
 
 		// Setting CPU quota and period independently does not make much sense,
 		// but historically runc allowed it and this needs to be supported
@@ -269,72 +269,72 @@ other options are ignored.
 		// Here in update, previously set values are available from config.
 		// If only one of {quota,period} is set and the other is not, leave
 		// the unset parameter at the old value (don't overwrite config).
-		p, q := *r.CPU.Period, *r.CPU.Quota
-		if (p == 0 && q == 0) || (p != 0 && q != 0) {
-			// both values are either set or unset (0)
-			config.Cgroups.Resources.CpuPeriod = p
-			config.Cgroups.Resources.CpuQuota = q
-		} else {
-			// one is set and the other is not
-			if p != 0 {
-				// set new period, leave quota at old value
-				config.Cgroups.Resources.CpuPeriod = p
-			} else if q != 0 {
-				// set new quota, leave period at old value
-				config.Cgroups.Resources.CpuQuota = q
-			}
-		}
+		// p, q := *r.CPU.Period, *r.CPU.Quota
+		// if (p == 0 && q == 0) || (p != 0 && q != 0) {
+		// 	// both values are either set or unset (0)
+		// 	config.Cgroups.Resources.CpuPeriod = p
+		// 	config.Cgroups.Resources.CpuQuota = q
+		// } else {
+		// 	// one is set and the other is not
+		// 	if p != 0 {
+		// 		// set new period, leave quota at old value
+		// 		config.Cgroups.Resources.CpuPeriod = p
+		// 	} else if q != 0 {
+		// 		// set new quota, leave period at old value
+		// 		config.Cgroups.Resources.CpuQuota = q
+		// 	}
+		// }
 
-		config.Cgroups.Resources.CpuShares = *r.CPU.Shares
-		// CpuWeight is used for cgroupv2 and should be converted
-		config.Cgroups.Resources.CpuWeight = cgroups.ConvertCPUSharesToCgroupV2Value(*r.CPU.Shares)
-		config.Cgroups.Resources.CpuRtPeriod = *r.CPU.RealtimePeriod
-		config.Cgroups.Resources.CpuRtRuntime = *r.CPU.RealtimeRuntime
-		config.Cgroups.Resources.CpusetCpus = r.CPU.Cpus
-		config.Cgroups.Resources.CpusetMems = r.CPU.Mems
-		config.Cgroups.Resources.Memory = *r.Memory.Limit
-		config.Cgroups.Resources.MemoryReservation = *r.Memory.Reservation
-		config.Cgroups.Resources.MemorySwap = *r.Memory.Swap
-		config.Cgroups.Resources.PidsLimit = r.Pids.Limit
-		config.Cgroups.Resources.Unified = r.Unified
+		// config.Cgroups.Resources.CpuShares = *r.CPU.Shares
+		// // CpuWeight is used for cgroupv2 and should be converted
+		// config.Cgroups.Resources.CpuWeight = cgroups.ConvertCPUSharesToCgroupV2Value(*r.CPU.Shares)
+		// config.Cgroups.Resources.CpuRtPeriod = *r.CPU.RealtimePeriod
+		// config.Cgroups.Resources.CpuRtRuntime = *r.CPU.RealtimeRuntime
+		// config.Cgroups.Resources.CpusetCpus = r.CPU.Cpus
+		// config.Cgroups.Resources.CpusetMems = r.CPU.Mems
+		// config.Cgroups.Resources.Memory = *r.Memory.Limit
+		// config.Cgroups.Resources.MemoryReservation = *r.Memory.Reservation
+		// config.Cgroups.Resources.MemorySwap = *r.Memory.Swap
+		// config.Cgroups.Resources.PidsLimit = r.Pids.Limit
+		// config.Cgroups.Resources.Unified = r.Unified
 
-		// Update Intel RDT
-		l3CacheSchema := context.String("l3-cache-schema")
-		memBwSchema := context.String("mem-bw-schema")
-		if l3CacheSchema != "" && !intelrdt.IsCATEnabled() {
-			return errors.New("Intel RDT/CAT: l3 cache schema is not enabled")
-		}
+		// // Update Intel RDT
+		// l3CacheSchema := context.String("l3-cache-schema")
+		// memBwSchema := context.String("mem-bw-schema")
+		// if l3CacheSchema != "" && !intelrdt.IsCATEnabled() {
+		// 	return errors.New("Intel RDT/CAT: l3 cache schema is not enabled")
+		// }
 
-		if memBwSchema != "" && !intelrdt.IsMBAEnabled() {
-			return errors.New("Intel RDT/MBA: memory bandwidth schema is not enabled")
-		}
+		// if memBwSchema != "" && !intelrdt.IsMBAEnabled() {
+		// 	return errors.New("Intel RDT/MBA: memory bandwidth schema is not enabled")
+		// }
 
-		if l3CacheSchema != "" || memBwSchema != "" {
-			// If intelRdt is not specified in original configuration, we just don't
-			// Apply() to create intelRdt group or attach tasks for this container.
-			// In update command, we could re-enable through IntelRdtManager.Apply()
-			// and then update intelrdt constraint.
-			if config.IntelRdt == nil {
-				state, err := container.State()
-				if err != nil {
-					return err
-				}
-				config.IntelRdt = &configs.IntelRdt{}
-				intelRdtManager := intelrdt.NewManager(&config, container.ID(), state.IntelRdtPath)
-				if err := intelRdtManager.Apply(state.InitProcessPid); err != nil {
-					return err
-				}
-			}
-			config.IntelRdt.L3CacheSchema = l3CacheSchema
-			config.IntelRdt.MemBwSchema = memBwSchema
-		}
+		// if l3CacheSchema != "" || memBwSchema != "" {
+		// 	// If intelRdt is not specified in original configuration, we just don't
+		// 	// Apply() to create intelRdt group or attach tasks for this container.
+		// 	// In update command, we could re-enable through IntelRdtManager.Apply()
+		// 	// and then update intelrdt constraint.
+		// 	if config.IntelRdt == nil {
+		// 		state, err := container.State()
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		config.IntelRdt = &configs.IntelRdt{}
+		// 		intelRdtManager := intelrdt.NewManager(&config, container.ID(), state.IntelRdtPath)
+		// 		if err := intelRdtManager.Apply(state.InitProcessPid); err != nil {
+		// 			return err
+		// 		}
+		// 	}
+		// 	config.IntelRdt.L3CacheSchema = l3CacheSchema
+		// 	config.IntelRdt.MemBwSchema = memBwSchema
+		// }
 
 		// XXX(kolyshkin@): currently "runc update" is unable to change
 		// device configuration, so add this to skip device update.
 		// This helps in case an extra plugin (nvidia GPU) applies some
 		// configuration on top of what runc does.
 		// Note this field is not saved into container's state.json.
-		config.Cgroups.SkipDevices = true
+		// config.Cgroups.SkipDevices = true
 
 		return container.Set(config)
 	},

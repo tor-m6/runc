@@ -14,8 +14,8 @@ import (
 )
 
 type tty struct {
-	epoller     *console.Epoller
-	console     *console.EpollConsole
+	// epoller     *console.Epoller
+	// console     *console.EpollConsole
 	hostConsole console.Console
 	closers     []io.Closer
 	postStart   []io.Closer
@@ -112,23 +112,23 @@ func (t *tty) recvtty(socket *os.File) (Err error) {
 	if err != nil {
 		return err
 	}
-	epoller, err := console.NewEpoller()
-	if err != nil {
-		return err
-	}
-	epollConsole, err := epoller.Add(cons)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if Err != nil {
-			_ = epollConsole.Close()
-		}
-	}()
-	go func() { _ = epoller.Wait() }()
-	go func() { _, _ = io.Copy(epollConsole, os.Stdin) }()
-	t.wg.Add(1)
-	go t.copyIO(os.Stdout, epollConsole)
+	// epoller, err := console.NewEpoller()
+	// if err != nil {
+	// 	return err
+	// }
+	// epollConsole, err := epoller.Add(cons)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer func() {
+	// 	if Err != nil {
+	// 		_ = epollConsole.Close()
+	// 	}
+	// }()
+	// go func() { _ = epoller.Wait() }()
+	// go func() { _, _ = io.Copy(epollConsole, os.Stdin) }()
+	// t.wg.Add(1)
+	// go t.copyIO(os.Stdout, epollConsole)
 
 	// Set raw mode for the controlling terminal.
 	if err := t.hostConsole.SetRaw(); err != nil {
@@ -136,9 +136,9 @@ func (t *tty) recvtty(socket *os.File) (Err error) {
 	}
 	go handleInterrupt(t.hostConsole)
 
-	t.epoller = epoller
-	t.console = epollConsole
-	t.closers = []io.Closer{epollConsole}
+	// t.epoller = epoller
+	// t.console = epollConsole
+	// t.closers = []io.Closer{epollConsole}
 	return nil
 }
 
@@ -174,9 +174,9 @@ func (t *tty) Close() {
 	}
 	// the process is gone at this point, shutting down the console if we have
 	// one and wait for all IO to be finished
-	if t.console != nil && t.epoller != nil {
-		_ = t.console.Shutdown(t.epoller.CloseConsole)
-	}
+	// if t.console != nil && t.epoller != nil {
+	// 	_ = t.console.Shutdown(t.epoller.CloseConsole)
+	// }
 	t.wg.Wait()
 	for _, c := range t.closers {
 		_ = c.Close()
@@ -187,8 +187,8 @@ func (t *tty) Close() {
 }
 
 func (t *tty) resize() error {
-	if t.console == nil || t.hostConsole == nil {
+	// if t.console == nil || t.hostConsole == nil {
 		return nil
-	}
-	return t.console.ResizeFrom(t.hostConsole)
+	// }
+	// return t.console.ResizeFrom(t.hostConsole)
 }

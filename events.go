@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	// "github.com/opencontainers/runc/libcontainer/cgroups"
 	// "github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/opencontainers/runc/types"
 
@@ -64,12 +64,12 @@ information is displayed once every 5 seconds.`,
 			}
 		}()
 		if context.Bool("stats") {
-			s, err := container.Stats()
+			_, err := container.Stats()
 			if err != nil {
 				return err
 			}
-			events <- &types.Event{Type: "stats", ID: container.ID(), Data: convertLibcontainerStats(s)}
-			close(events)
+			// events <- &types.Event{Type: "stats", ID: container.ID(), Data: convertLibcontainerStats(s)}
+			// close(events)
 			group.Wait()
 			return nil
 		}
@@ -98,11 +98,11 @@ information is displayed once every 5 seconds.`,
 				} else {
 					n = nil
 				}
-			case s := <-stats:
-				events <- &types.Event{Type: "stats", ID: container.ID(), Data: convertLibcontainerStats(s)}
+			// case s := <-stats:
+				// events <- &types.Event{Type: "stats", ID: container.ID(), Data: convertLibcontainerStats(s)}
 			}
 			if n == nil {
-				close(events)
+				// close(events)
 				break
 			}
 		}
@@ -111,102 +111,102 @@ information is displayed once every 5 seconds.`,
 	},
 }
 
-func convertLibcontainerStats(ls *libcontainer.Stats) *types.Stats {
-	cg := ls.CgroupStats
-	if cg == nil {
-		return nil
-	}
-	var s types.Stats
-	s.Pids.Current = cg.PidsStats.Current
-	s.Pids.Limit = cg.PidsStats.Limit
+// func convertLibcontainerStats(ls *libcontainer.Stats) *types.Stats {
+// 	cg := ls.CgroupStats
+// 	if cg == nil {
+// 		return nil
+// 	}
+// 	var s types.Stats
+// 	s.Pids.Current = cg.PidsStats.Current
+// 	s.Pids.Limit = cg.PidsStats.Limit
 
-	s.CPU.Usage.Kernel = cg.CpuStats.CpuUsage.UsageInKernelmode
-	s.CPU.Usage.User = cg.CpuStats.CpuUsage.UsageInUsermode
-	s.CPU.Usage.Total = cg.CpuStats.CpuUsage.TotalUsage
-	s.CPU.Usage.Percpu = cg.CpuStats.CpuUsage.PercpuUsage
-	s.CPU.Usage.PercpuKernel = cg.CpuStats.CpuUsage.PercpuUsageInKernelmode
-	s.CPU.Usage.PercpuUser = cg.CpuStats.CpuUsage.PercpuUsageInUsermode
-	s.CPU.Throttling.Periods = cg.CpuStats.ThrottlingData.Periods
-	s.CPU.Throttling.ThrottledPeriods = cg.CpuStats.ThrottlingData.ThrottledPeriods
-	s.CPU.Throttling.ThrottledTime = cg.CpuStats.ThrottlingData.ThrottledTime
+// 	s.CPU.Usage.Kernel = cg.CpuStats.CpuUsage.UsageInKernelmode
+// 	s.CPU.Usage.User = cg.CpuStats.CpuUsage.UsageInUsermode
+// 	s.CPU.Usage.Total = cg.CpuStats.CpuUsage.TotalUsage
+// 	s.CPU.Usage.Percpu = cg.CpuStats.CpuUsage.PercpuUsage
+// 	s.CPU.Usage.PercpuKernel = cg.CpuStats.CpuUsage.PercpuUsageInKernelmode
+// 	s.CPU.Usage.PercpuUser = cg.CpuStats.CpuUsage.PercpuUsageInUsermode
+// 	s.CPU.Throttling.Periods = cg.CpuStats.ThrottlingData.Periods
+// 	s.CPU.Throttling.ThrottledPeriods = cg.CpuStats.ThrottlingData.ThrottledPeriods
+// 	s.CPU.Throttling.ThrottledTime = cg.CpuStats.ThrottlingData.ThrottledTime
 
-	s.CPUSet = types.CPUSet(cg.CPUSetStats)
+// 	s.CPUSet = types.CPUSet(cg.CPUSetStats)
 
-	s.Memory.Cache = cg.MemoryStats.Cache
-	s.Memory.Kernel = convertMemoryEntry(cg.MemoryStats.KernelUsage)
-	s.Memory.KernelTCP = convertMemoryEntry(cg.MemoryStats.KernelTCPUsage)
-	s.Memory.Swap = convertMemoryEntry(cg.MemoryStats.SwapUsage)
-	s.Memory.Usage = convertMemoryEntry(cg.MemoryStats.Usage)
-	s.Memory.Raw = cg.MemoryStats.Stats
+// 	s.Memory.Cache = cg.MemoryStats.Cache
+// 	s.Memory.Kernel = convertMemoryEntry(cg.MemoryStats.KernelUsage)
+// 	s.Memory.KernelTCP = convertMemoryEntry(cg.MemoryStats.KernelTCPUsage)
+// 	s.Memory.Swap = convertMemoryEntry(cg.MemoryStats.SwapUsage)
+// 	s.Memory.Usage = convertMemoryEntry(cg.MemoryStats.Usage)
+// 	s.Memory.Raw = cg.MemoryStats.Stats
 
-	s.Blkio.IoServiceBytesRecursive = convertBlkioEntry(cg.BlkioStats.IoServiceBytesRecursive)
-	s.Blkio.IoServicedRecursive = convertBlkioEntry(cg.BlkioStats.IoServicedRecursive)
-	s.Blkio.IoQueuedRecursive = convertBlkioEntry(cg.BlkioStats.IoQueuedRecursive)
-	s.Blkio.IoServiceTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoServiceTimeRecursive)
-	s.Blkio.IoWaitTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoWaitTimeRecursive)
-	s.Blkio.IoMergedRecursive = convertBlkioEntry(cg.BlkioStats.IoMergedRecursive)
-	s.Blkio.IoTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoTimeRecursive)
-	s.Blkio.SectorsRecursive = convertBlkioEntry(cg.BlkioStats.SectorsRecursive)
+// 	s.Blkio.IoServiceBytesRecursive = convertBlkioEntry(cg.BlkioStats.IoServiceBytesRecursive)
+// 	s.Blkio.IoServicedRecursive = convertBlkioEntry(cg.BlkioStats.IoServicedRecursive)
+// 	s.Blkio.IoQueuedRecursive = convertBlkioEntry(cg.BlkioStats.IoQueuedRecursive)
+// 	s.Blkio.IoServiceTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoServiceTimeRecursive)
+// 	s.Blkio.IoWaitTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoWaitTimeRecursive)
+// 	s.Blkio.IoMergedRecursive = convertBlkioEntry(cg.BlkioStats.IoMergedRecursive)
+// 	s.Blkio.IoTimeRecursive = convertBlkioEntry(cg.BlkioStats.IoTimeRecursive)
+// 	s.Blkio.SectorsRecursive = convertBlkioEntry(cg.BlkioStats.SectorsRecursive)
 
-	s.Hugetlb = make(map[string]types.Hugetlb)
-	for k, v := range cg.HugetlbStats {
-		s.Hugetlb[k] = convertHugtlb(v)
-	}
+// 	s.Hugetlb = make(map[string]types.Hugetlb)
+// 	for k, v := range cg.HugetlbStats {
+// 		s.Hugetlb[k] = convertHugtlb(v)
+// 	}
 
-	if is := ls.IntelRdtStats; is != nil {
-		if intelrdt.IsCATEnabled() {
-			s.IntelRdt.L3CacheInfo = convertL3CacheInfo(is.L3CacheInfo)
-			s.IntelRdt.L3CacheSchemaRoot = is.L3CacheSchemaRoot
-			s.IntelRdt.L3CacheSchema = is.L3CacheSchema
-		}
-		if intelrdt.IsMBAEnabled() {
-			s.IntelRdt.MemBwInfo = convertMemBwInfo(is.MemBwInfo)
-			s.IntelRdt.MemBwSchemaRoot = is.MemBwSchemaRoot
-			s.IntelRdt.MemBwSchema = is.MemBwSchema
-		}
-		if intelrdt.IsMBMEnabled() {
-			s.IntelRdt.MBMStats = is.MBMStats
-		}
-		if intelrdt.IsCMTEnabled() {
-			s.IntelRdt.CMTStats = is.CMTStats
-		}
-	}
+// 	if is := ls.IntelRdtStats; is != nil {
+// 		if intelrdt.IsCATEnabled() {
+// 			s.IntelRdt.L3CacheInfo = convertL3CacheInfo(is.L3CacheInfo)
+// 			s.IntelRdt.L3CacheSchemaRoot = is.L3CacheSchemaRoot
+// 			s.IntelRdt.L3CacheSchema = is.L3CacheSchema
+// 		}
+// 		if intelrdt.IsMBAEnabled() {
+// 			s.IntelRdt.MemBwInfo = convertMemBwInfo(is.MemBwInfo)
+// 			s.IntelRdt.MemBwSchemaRoot = is.MemBwSchemaRoot
+// 			s.IntelRdt.MemBwSchema = is.MemBwSchema
+// 		}
+// 		if intelrdt.IsMBMEnabled() {
+// 			s.IntelRdt.MBMStats = is.MBMStats
+// 		}
+// 		if intelrdt.IsCMTEnabled() {
+// 			s.IntelRdt.CMTStats = is.CMTStats
+// 		}
+// 	}
 
-	s.NetworkInterfaces = ls.Interfaces
-	return &s
-}
+// 	s.NetworkInterfaces = ls.Interfaces
+// 	return &s
+// }
 
-func convertHugtlb(c cgroups.HugetlbStats) types.Hugetlb {
-	return types.Hugetlb{
-		Usage:   c.Usage,
-		Max:     c.MaxUsage,
-		Failcnt: c.Failcnt,
-	}
-}
+// func convertHugtlb(c cgroups.HugetlbStats) types.Hugetlb {
+// 	return types.Hugetlb{
+// 		Usage:   c.Usage,
+// 		Max:     c.MaxUsage,
+// 		Failcnt: c.Failcnt,
+// 	}
+// }
 
-func convertMemoryEntry(c cgroups.MemoryData) types.MemoryEntry {
-	return types.MemoryEntry{
-		Limit:   c.Limit,
-		Usage:   c.Usage,
-		Max:     c.MaxUsage,
-		Failcnt: c.Failcnt,
-	}
-}
+// func convertMemoryEntry(c cgroups.MemoryData) types.MemoryEntry {
+// 	return types.MemoryEntry{
+// 		Limit:   c.Limit,
+// 		Usage:   c.Usage,
+// 		Max:     c.MaxUsage,
+// 		Failcnt: c.Failcnt,
+// 	}
+// }
 
-func convertBlkioEntry(c []cgroups.BlkioStatEntry) []types.BlkioEntry {
-	var out []types.BlkioEntry
-	for _, e := range c {
-		out = append(out, types.BlkioEntry(e))
-	}
-	return out
-}
+// func convertBlkioEntry(c []cgroups.BlkioStatEntry) []types.BlkioEntry {
+// 	var out []types.BlkioEntry
+// 	for _, e := range c {
+// 		out = append(out, types.BlkioEntry(e))
+// 	}
+// 	return out
+// }
 
-func convertL3CacheInfo(i *intelrdt.L3CacheInfo) *types.L3CacheInfo {
-	ci := types.L3CacheInfo(*i)
-	return &ci
-}
+// func convertL3CacheInfo(i *intelrdt.L3CacheInfo) *types.L3CacheInfo {
+// 	ci := types.L3CacheInfo(*i)
+// 	return &ci
+// }
 
-func convertMemBwInfo(i *intelrdt.MemBwInfo) *types.MemBwInfo {
-	mi := types.MemBwInfo(*i)
-	return &mi
-}
+// func convertMemBwInfo(i *intelrdt.MemBwInfo) *types.MemBwInfo {
+// 	mi := types.MemBwInfo(*i)
+// 	return &mi
+// }

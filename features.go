@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	// "fmt"
 
-	"github.com/opencontainers/runc/libcontainer/capabilities"
+	// "github.com/opencontainers/runc/libcontainer/capabilities"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/seccomp"
-	"github.com/opencontainers/runc/libcontainer/specconv"
+	// "github.com/opencontainers/runc/libcontainer/seccomp"
+	// "github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/opencontainers/runc/types/features"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
@@ -38,10 +38,10 @@ var featuresCommand = cli.Command{
 				features.AnnotationRuncCheckpointEnabled: "true",
 			},
 			Hooks:        configs.KnownHookNames(),
-			MountOptions: specconv.KnownMountOptions(),
+			// MountOptions: specconv.KnownMountOptions(),
 			Linux: &features.Linux{
-				Namespaces:   specconv.KnownNamespaces(),
-				Capabilities: capabilities.KnownCapabilities(),
+				// Namespaces:   specconv.KnownNamespaces(),
+				// Capabilities: capabilities.KnownCapabilities(),
 				Cgroup: &features.Cgroup{
 					V1:          &tru,
 					V2:          &tru,
@@ -57,16 +57,16 @@ var featuresCommand = cli.Command{
 			},
 		}
 
-		if seccomp.Enabled {
-			feat.Linux.Seccomp = &features.Seccomp{
-				Enabled:   &tru,
-				Actions:   seccomp.KnownActions(),
-				Operators: seccomp.KnownOperators(),
-				Archs:     seccomp.KnownArchs(),
-			}
-			major, minor, patch := seccomp.Version()
-			feat.Annotations[features.AnnotationLibseccompVersion] = fmt.Sprintf("%d.%d.%d", major, minor, patch)
-		}
+		// if seccomp.Enabled {
+		// 	feat.Linux.Seccomp = &features.Seccomp{
+		// 		Enabled:   &tru,
+		// 		Actions:   seccomp.KnownActions(),
+		// 		Operators: seccomp.KnownOperators(),
+		// 		Archs:     seccomp.KnownArchs(),
+		// 	}
+		// 	major, minor, patch := seccomp.Version()
+		// 	feat.Annotations[features.AnnotationLibseccompVersion] = fmt.Sprintf("%d.%d.%d", major, minor, patch)
+		// }
 
 		enc := json.NewEncoder(context.App.Writer)
 		enc.SetIndent("", "    ")

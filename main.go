@@ -73,12 +73,12 @@ func main() {
 
 	xdgRuntimeDir := ""
 	root := "/run/runc"
-	if shouldHonorXDGRuntimeDir() {
-		if runtimeDir := os.Getenv("XDG_RUNTIME_DIR"); runtimeDir != "" {
-			root = runtimeDir + "/runc"
-			xdgRuntimeDir = root
-		}
-	}
+	// if shouldHonorXDGRuntimeDir() {
+	// 	if runtimeDir := os.Getenv("XDG_RUNTIME_DIR"); runtimeDir != "" {
+	// 		root = runtimeDir + "/runc"
+	// 		xdgRuntimeDir = root
+	// 	}
+	// }
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
@@ -116,7 +116,7 @@ func main() {
 		},
 	}
 	app.Commands = []cli.Command{
-		checkpointCommand,
+		// checkpointCommand,
 		createCommand,
 		deleteCommand,
 		eventsCommand,
@@ -125,7 +125,7 @@ func main() {
 		listCommand,
 		pauseCommand,
 		psCommand,
-		restoreCommand,
+		// restoreCommand,
 		resumeCommand,
 		runCommand,
 		specCommand,

@@ -690,12 +690,6 @@ const (
 	SizeofLongLong = 0x8
 )
 
-type (
-	_C_short     int16
-	_C_int       int32
-	_C_long_long int64
-)
-
 type Rlimit struct {
 	Cur int64
 	Max int64
@@ -1413,3 +1407,11 @@ type NlMsghdr struct {
 	Seq   uint32
 	Pid   uint32
 }
+
+type _pid_t int32
+type _uid_t uint32
+type _gid_t uint32
+
+type Pid_t _pid_t
+type Uid_t _uid_t
+type Gid_t _gid_t

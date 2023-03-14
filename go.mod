@@ -3,7 +3,6 @@ module github.com/opencontainers/runc
 go 1.16
 
 require (
-	github.com/checkpoint-restore/go-criu/v5 v5.3.0
 	github.com/cilium/ebpf v0.8.0
 	github.com/containerd/console v1.0.3
 	github.com/coreos/go-systemd/v22 v22.3.2
@@ -13,8 +12,6 @@ require (
 	github.com/moby/sys/mountinfo v0.6.0
 	github.com/mrunalp/fileutils v0.5.0
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
-	github.com/opencontainers/selinux v1.10.0
-	github.com/seccomp/libseccomp-golang v0.9.2-0.20210429002308-3879420cc921
 	github.com/sirupsen/logrus v1.8.1
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	// NOTE: urfave/cli must be <= v1.22.1 due to a regression: https://github.com/urfave/cli/issues/1092
